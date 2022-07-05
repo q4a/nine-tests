@@ -31,8 +31,8 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <math.h>
-#include "visual_mod.h"
-//#include "visual.h"
+//#include "visual_mod.h"
+#include "visual.h"
 
 static void launch_tests(void)
 {
