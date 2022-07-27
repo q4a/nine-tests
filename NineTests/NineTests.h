@@ -40,9 +40,9 @@
 #define ok(c, ...) {{if (!(c)) fprintf(stdout, "fail %s ", __func__); else fprintf(stdout, "succ %s ", __func__); fprintf(stdout, __VA_ARGS__);}}
 #define ok_(file, line) ok
 
-#define skip(...) {fprintf(stdout, "skip: "); fprintf(stdout, __VA_ARGS__);}
-#define win_skip(...) {fprintf(stdout, "skip: "); fprintf(stdout, __VA_ARGS__);}
-#define trace(...) {fprintf(stdout, "trace: ");fprintf(stdout, __VA_ARGS__);}
+#define skip(...) {fprintf(stdout, "skip "); fprintf(stdout, __VA_ARGS__);}
+#define win_skip(...) {fprintf(stdout, "skip "); fprintf(stdout, __VA_ARGS__);}
+#define trace(...) {fprintf(stdout, "trace ");fprintf(stdout, __VA_ARGS__);}
 
 #define ZeroMemory(p, n) memset(p, 0, n)
 
