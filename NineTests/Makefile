@@ -8,6 +8,7 @@
 #
 # REMOVE THIS ....
 D3DADAPTER9_LOCATION="/lib/x86_64-linux-gnu/d3d/d3dadapter9.so"
+#D3DADAPTER9_LOCATION="/install/lib/d3d/d3dadapter9.so" # for Mesa3D CI
 CC=gcc -g
 CXX=g++ -g
 
