@@ -1257,8 +1257,9 @@ d3dadapter9_new( BOOL ex, Display *dpy,
            const char *paths[] = {
               "/usr/lib32/d3d/d3dadapter9.so",
               "/usr/lib/d3d/d3dadapter9.so",
+              "/usr/lib/x86_64-linux-gnu/d3d/d3dadapter9.so",
            };
-           for (unsigned i = 0; !handle && i < 2; i++)
+           for (unsigned i = 0; !handle && i < 3; i++)
               handle = dlopen(paths[i], RTLD_LOCAL | RTLD_NOW);
            if (!handle)
               ERR("Failed to load d3d9 lib: %s\n", dlerror());
@@ -1317,8 +1318,7 @@ d3dadapter9_new( BOOL ex, Display *dpy,
     This->adapter = adapter;
 
     *ppOut = (IDirect3D9Ex_alt *)This;
-    FIXME("\033[1;32m\nNative Direct3D 9 is active."
-          "\nFor more information visit https://wiki.ixit.cz/d3d9\033[0m\n");
+    FIXME("\033[1;32m\nNative Direct3D 9 is active.\033[0m\n");
     return D3D_OK;
 }
 
