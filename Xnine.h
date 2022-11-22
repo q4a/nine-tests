@@ -35,12 +35,6 @@ BOOL Xnine_init(int screen_num, struct Xnine_private **priv);
 struct IDirect3D9 *Xnine_get_D3D9(struct Xnine_private *priv);
 struct IDirect3D9Ex *Xnine_get_D3D9Ex(struct Xnine_private *priv);
 
-BOOL Xnine_create_window(struct Xnine_private *priv, int width, int height, BOOL fullscreen, HWND *hwnd);
-
-BOOL Xnine_resize_window(struct Xnine_private *priv, HWND win, int width, int height, BOOL fullscreen);
-
-void Xnine_destroy_window(struct Xnine_private *priv, HWND win);
-
 void Xnine_close(struct Xnine_private *priv);
 
 #ifdef __cplusplus

@@ -43,147 +43,14 @@
 #define IsEqualGUID(rguid1, rguid2) (!memcmp(rguid1, rguid2, sizeof(GUID)))
 
 
-struct Xnine_window {
-    HWND win;
-    int width;
-    int height;
-    int border_width_left;
-    int border_width_right;
-    int border_height_top;
-    int border_height_bottom;
-    BOOL fullscreen;
-    int depth;
-    Window Xwindow;
-    struct Xnine_window *next;
-};
-
 struct Xnine_private {
     int scrnum;
     Display *dpy;
     int screen_width;
     int screen_height;
     struct D3DAdapter9DRM *d3d9_drm;
-#if D3DADAPTER9_WITHDRI2
-    int is_dri2_fallback;
-#endif
     struct Xnine_window *window_list;
 };
-
-static struct Xnine_window *find_window(struct Xnine_private *priv, HWND win)
-{
-    struct Xnine_window *w = priv->window_list;
-
-    while (w) {
-        if (w->win == win)
-            break;
-        w = w->next;
-    }
-    return w;
-}
-
-static void remove_window(struct Xnine_private *priv, HWND win)
-{
-    struct Xnine_window *o = NULL, *w = priv->window_list;
-
-    if (w->win == win) {
-        priv->window_list = w->next;
-        return;
-    }
-
-    o = w;
-    w = w->next;
-
-    while (w) {
-        if (w->win == win)
-            break;
-        o = w;
-        w = w->next;
-    }
-    if (w)
-        o->next = w->next;
-}
-
-static HWND add_window(struct Xnine_private *priv, struct Xnine_window *Xnine_window)
-{
-    struct Xnine_window *w = priv->window_list;
-
-    if (!w) {
-        priv->window_list = Xnine_window;
-        Xnine_window->win = (HWND)1;
-        return (HWND)1;
-    }
-
-    while (w->next) {
-        int index = (int)(uintptr_t) w->win;
-        w = w->next;
-    }
-    /* indices grow */
-    Xnine_window->win = (HWND) ((uintptr_t) w->win + 1);
-    w->next = Xnine_window;
-    return (HWND)Xnine_window->win;
-}
-
-
-///// X Helper functions
-
-BOOL Xnine_create_window(struct Xnine_private *priv, int width, int height, BOOL fullscreen, HWND *hwnd)
-{
-    Window Xwindow;
-    struct Xnine_window *Xnine_win;
-    XSetWindowAttributes attr;
-
-    assert(!fullscreen);
-    attr.background_pixel = 0;
-    attr.border_pixel = 0;
-    attr.event_mask = 0;
-    
-    Xwindow = XCreateWindow(priv->dpy,
-                            RootWindow(priv->dpy, priv->scrnum),
-                            0, 0, width, height, 0, 24, InputOutput,
-                            CopyFromParent, CWBorderPixel, &attr);
-    if (!Xwindow)
-        return FALSE;
-
-    Xnine_win = calloc(1, sizeof(struct Xnine_window));
-    if (!Xnine_win) {
-        XDestroyWindow(priv->dpy, Xwindow);
-        return FALSE;
-    }
-
-    Xnine_win->width = width;
-    Xnine_win->height = height;
-    Xnine_win->border_width_left = 0;
-    Xnine_win->border_width_right = 0;
-    Xnine_win->border_height_top = 0;
-    Xnine_win->border_height_bottom = 0;
-    Xnine_win->fullscreen = FALSE;
-    Xnine_win->depth = 24;
-    Xnine_win->Xwindow = Xwindow;
-    XMapWindow(priv->dpy, Xwindow);
-    *hwnd = add_window(priv, Xnine_win);
-    return TRUE;
-}
-
-BOOL Xnine_resize_window(struct Xnine_private *priv, HWND win, int width, int height, BOOL fullscreen)
-{
-    struct Xnine_window *Xnine_win = find_window(priv, win);
-
-    if (!Xnine_win || fullscreen)
-        return FALSE;
-    XResizeWindow(priv->dpy, Xnine_win->Xwindow, width, height);
-    return TRUE;
-}
-
-void Xnine_destroy_window(struct Xnine_private *priv, HWND win)
-{
-    struct Xnine_window *Xnine_win = find_window(priv, win);
-
-    if (!Xnine_win)
-        return;
-    remove_window(priv, win);
-    XDestroyWindow(priv->dpy, Xnine_win->Xwindow);
-    free(Xnine_win);
-}
 
 ///// ID3DPresent
 
@@ -196,9 +63,6 @@ struct D3DPresent_Xnine {
 
     D3DPRESENT_PARAMETERS present_params;
     PRESENTpriv *present_priv;
-#if D3DADAPTER9_WITHDRI2
-    struct DRI2priv *dri2_priv;
-#endif
 };
 
 const GUID IID_IUnknown = { 0x00000000, 0x0000, 0x0000, { 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46 } };
@@ -239,10 +103,6 @@ Xnine_Release(struct D3DPresent_Xnine *This)
     uint32_t refs =  __sync_sub_and_fetch(&This->refs, 1);
     if (refs == 0) {
         PRESENTDestroy(This->priv->dpy, This->present_priv);
-#if D3DADAPTER9_WITHDRI2
-        if (This->priv->is_dri2_fallback)
-            DRI2FallbackDestroy(This->dri2_priv);
-#endif
         free(This);
     }
     return refs;
@@ -253,6 +113,7 @@ Xnine_SetPresentParameters(struct D3DPresent_Xnine *This,
                            D3DPRESENT_PARAMETERS *pPresentationParameters,
                            D3DDISPLAYMODEEX *pFullscreenDisplayMode)
 {
+/*
     HWND draw_window_hwnd = pPresentationParameters->hDeviceWindow ?
                             pPresentationParameters->hDeviceWindow :
                             This->focus_wnd;
@@ -269,6 +130,7 @@ Xnine_SetPresentParameters(struct D3DPresent_Xnine *This,
     } else if (!This->present_params.Windowed) {
         //TODO: unset fullscreen
     }
+*/
 
     This->present_params = *pPresentationParameters;
     return D3D_OK;
@@ -279,6 +141,8 @@ struct D3DWindowBuffer
     PRESENTPixmapPriv *present_pixmap_priv;
 };
 
+// Current name is NewD3DWindowBufferFromDmaBuf
+// https://github.com/Mesa3D/mesa/blob/b07d57e48105448368c7d0e98fb2eccdb28755cb/include/d3dadapter/present.h#L69
 static HRESULT WINAPI
 Xnine_D3DWindowBufferFromDmaBuf(struct D3DPresent_Xnine *This, int dmaBufFd,
                                 int width, int height, int stride, int depth,
@@ -286,16 +150,6 @@ Xnine_D3DWindowBufferFromDmaBuf(struct D3DPresent_Xnine *This, int dmaBufFd,
 {
     Pixmap pixmap;
 
-#if D3DADAPTER9_WITHDRI2
-    if (This->priv->is_dri2_fallback) {
-        *out = calloc(1, sizeof(struct D3DWindowBuffer));
-        DRI2FallbackPRESENTPixmap(This->present_priv, This->dri2_priv,
-                                  dmaBufFd, width, height, stride, depth,
-                                  bpp,
-                                  &((*out)->present_pixmap_priv));
-        return D3D_OK;
-    }
-#endif
     if (!DRI3PixmapFromDmaBuf(This->priv->dpy, DefaultScreen(This->priv->dpy),
                               dmaBufFd, width, height, stride, depth,
                               bpp, &pixmap ))
@@ -329,10 +183,6 @@ static HRESULT WINAPI
 Xnine_FrontBufferCopy(struct D3DPresent_Xnine *This,
                       struct D3DWindowBuffer *buffer)
 {
-#if D3DADAPTER9_WITHDRI2
-    if (This->priv->is_dri2_fallback)
-        return D3DERR_DRIVERINTERNALERROR;
-#endif
     if (PRESENTHelperCopyFront(This->priv->dpy, buffer->present_pixmap_priv))
         return D3D_OK;
     else
@@ -348,6 +198,7 @@ Xnine_PresentBuffer(struct D3DPresent_Xnine *This,
                     const RGNDATA *pDirtyRegion,
                     DWORD Flags)
 {
+/*
     RECT dest_translate;
     HWND dest_window_hwnd = hWndOverride ?
                               hWndOverride :
@@ -380,6 +231,7 @@ Xnine_PresentBuffer(struct D3DPresent_Xnine *This,
                        buffer->present_pixmap_priv, &This->present_params,
                        pSourceRect, pDestRect, pDirtyRegion))
         return D3DERR_DRIVERINTERNALERROR;
+*/
 
     return D3D_OK;
 }
@@ -453,6 +305,7 @@ static HRESULT WINAPI
 Xnine_GetWindowInfo(struct D3DPresent_Xnine *This, HWND hWnd,
                     int *width, int *height, int *depth )
 {
+/*
     struct Xnine_window *window;
     HRESULT hr;
 
@@ -462,13 +315,16 @@ Xnine_GetWindowInfo(struct D3DPresent_Xnine *This, HWND hWnd,
     *width = window->width;
     *height = window->height;
     *depth = window->depth;
+*/
     return D3D_OK;
 }
 
 static ID3DPresentVtbl Xnine_vtable = {
+    /* IUnknown */
     (void *)Xnine_QueryInterface,
     (void *)Xnine_AddRef,
     (void *)Xnine_Release,
+    /* ID3DPresent */
     (void *)Xnine_SetPresentParameters,
     (void *)Xnine_D3DWindowBufferFromDmaBuf,
     (void *)Xnine_DestroyD3DWindowBuffer,
@@ -498,12 +354,9 @@ struct D3DPresent_Xnine *D3DPresent_Xnine_create(struct Xnine_private *priv, HWN
     This->focus_wnd = focus_wnd;
     This->priv = priv;
     PRESENTInit(priv->dpy, &(This->present_priv));
-#if D3DADAPTER9_WITHDRI2
-    if (priv->is_dri2_fallback)
-        DRI2FallbackInit(priv->dpy, &(This->dri2_priv));
-#endif
     return This;
 }
+
 ///// ID3DPresentGroup
 
 struct D3DPresentGroup_Xnine
@@ -952,9 +805,11 @@ XnineD3D_CreateDevice(struct Direct3D9Ex_Xnine *This,
 }
 
 static IDirect3D9ExVtbl XnineD3d9_vtable = {
+    /* IUnknown */
     (void *)XnineD3D_QueryInterface,
     (void *)XnineD3D_AddRef,
     (void *)XnineD3D_Release,
+    /* IDirect3D9 */
     (void *)XnineD3D_RegisterSoftwareDevice,
     (void *)XnineD3D_GetAdapterCount,
     (void *)XnineD3D_GetAdapterIdentifier,
@@ -969,6 +824,7 @@ static IDirect3D9ExVtbl XnineD3d9_vtable = {
     (void *)XnineD3D_GetDeviceCaps,
     (void *)XnineD3D_GetAdapterMonitor,
     (void *)XnineD3D_CreateDevice,
+    /* IDirect3D9Ex */
     (void *)XnineD3D_GetAdapterModeCountEx,
     (void *)XnineD3D_EnumAdapterModesEx,
     (void *)XnineD3D_GetAdapterDisplayModeEx,
@@ -981,20 +837,10 @@ ID3DAdapter9 *create_adapter9(struct Xnine_private *priv)
     int fd;
     ID3DAdapter9 *out;
 
-#if D3DADAPTER9_WITHDRI2
-    if (!priv->is_dri2_fallback && !DRI3Open(priv->dpy, DefaultScreen(priv->dpy), &fd)) {
-#else
     if (!DRI3Open(priv->dpy, DefaultScreen(priv->dpy), &fd)) {
-#endif
         fprintf(stderr, "Failed to use DRI3\n");
         return NULL;
     }
-#if D3DADAPTER9_WITHDRI2
-    if (priv->is_dri2_fallback && !DRI2FallbackOpen(priv->dpy, DefaultScreen(priv->dpy), &fd)) {
-        fprintf(stderr, "Failed to use DRI2\n");
-        return NULL;
-    }
-#endif
 
     if (priv->d3d9_drm->create_adapter(fd, &out) != D3D_OK) {
         fprintf(stderr, "Failed to load the driver\n");
@@ -1052,17 +898,8 @@ BOOL Xnine_init(int screen_num, struct Xnine_private **priv)
     }
 
     if (!DRI3CheckExtension(dpy, 1, 0)) {
-#if !D3DADAPTER9_WITHDRI2
         fprintf(stderr, "Requirements not met: no DRI3\n");
         return FALSE;
-#else
-        fprintf(stderr, "Unable to query DRI3. Trying DRI2 fallback (slower performance).\n");
-        is_dri2_fallback = 1;
-        if (!DRI2FallbackCheckSupport(dpy)) {
-            fprintf(stderr, "Requirements not met: no DRI3 nor DRI2 fallback\n");
-            return FALSE;
-        }
-#endif
     }
 
     handle = dlopen(D3DADAPTERPATH, RTLD_LOCAL | RTLD_NOW);
@@ -1097,17 +934,11 @@ BOOL Xnine_init(int screen_num, struct Xnine_private **priv)
     res->screen_width = DisplayWidth(dpy, scrn_num);
     res->screen_height = DisplayHeight(dpy, scrn_num);
     res->d3d9_drm = d3d9_drm;
-#if D3DADAPTER9_WITHDRI2
-    res->is_dri2_fallback = is_dri2_fallback;
-#endif
     *priv = res;
     return TRUE;
 }
 
 void Xnine_close(struct Xnine_private *priv)
 {
-    while (priv->window_list) {
-        Xnine_destroy_window(priv, (priv->window_list)->win);
-    }
     free(priv);
 }
