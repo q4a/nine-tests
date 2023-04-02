@@ -30,10 +30,15 @@
 
 #include <math.h>
 #include <d3d9.h>
-#include "Xnine.h"
 #include "NineTests.h"
 
+#ifdef _WIN32
+#define _USE_MATH_DEFINES
+#else
+#include "Xnine.h"
 #include <unistd.h>
+#endif
+
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
