@@ -1,0 +1,29 @@
+name: Windows CI
+
+on: [push, pull_request]
+
+jobs:
+  win:
+    runs-on: windows-2019
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [debug]
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: Install Windows libs
+      shell: cmd
+      run: |
+        cd NineTests
+        curl -LJO https://github.com/q4a/nine-tests/releases/download/extern-d3d9/extern.7z
+        7z x extern.7z
+        dir
+    - uses: ilammy/msvc-dev-cmd@v1
+    - name: Configure with CMakeSettings.json and build
+      uses: lukka/run-cmake@v10
+      with:
+        cmakeListsTxtPath: '${{ github.workspace }}/NineTests/CMakeLists.txt'
+        configurePreset: default
+        buildPreset: '${{ matrix.configuration }}'
