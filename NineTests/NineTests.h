@@ -23,9 +23,11 @@
 
 #include <math.h>
 #include <d3d9.h>
+#ifndef _WIN32
 #include "Xnine.h"
 
 #include <unistd.h>
+#endif
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -69,6 +71,19 @@
 
 #define GetProcessHeap() 0
 
+#ifdef _WIN32
+static HWND create_window(void)
+{
+    HWND hwnd;
+    RECT rect;
+
+    SetRect(&rect, 0, 0, 640, 480);
+    AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW | WS_VISIBLE, FALSE);
+    hwnd = CreateWindowA("static", "d3d9_test", WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+        0, 0, rect.right - rect.left, rect.bottom - rect.top, 0, 0, 0, 0);
+    return hwnd;
+}
+#else
 struct Xnine_private *priv;
 
 #undef DestroyWindow
@@ -111,3 +126,4 @@ static HWND create_window(void)
     (void)Xnine_create_window(priv, 640, 480, FALSE, &ret);
     return ret;
 }
+#endif

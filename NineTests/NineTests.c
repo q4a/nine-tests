@@ -23,9 +23,11 @@
 
 #include <math.h>
 #include <d3d9.h>
+#ifndef _WIN32
 #include "Xnine.h"
 
 #include <unistd.h>
+#endif
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -156,15 +158,19 @@ static const struct test_map w_test_map[] = {
 
 
 int main(int argc, char *argv[]) {
+#ifndef _WIN32
     if (!Xnine_init(-1, &priv))
       return 1;
+#endif
 
     for (unsigned i = 0; i < sizeof(w_test_map) / sizeof(w_test_map[0]); i++) {
       if ((argc == 1) || !strcmp(argv[1], w_test_map[i].name)) {
-	w_test_map[i].func();
+        w_test_map[i].func();
       }
     }
 
+#ifndef _WIN32
     Xnine_close(priv);
+#endif
     return 0;
 }
