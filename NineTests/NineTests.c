@@ -126,6 +126,7 @@ static const struct test_map w_test_map[] = {
     { "test_negative_fixedfunction_fog", test_negative_fixedfunction_fog },
     { "test_position_index", test_position_index },
     { "test_table_fog_zw", test_table_fog_zw },
+    { "test_table_shader_fog", test_table_shader_fog },
     { "test_signed_formats", test_signed_formats },
     { "test_multisample_mismatch", test_multisample_mismatch },
     { "test_texcoordindex", test_texcoordindex },
