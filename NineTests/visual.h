@@ -19515,7 +19515,7 @@ done:
 static void test_table_shader_fog(void)
 {
     IDirect3DVertexShader9 *vertex_shader[2] = { NULL, NULL, };
-    IDirect3DPixelShader9 *pixel_shader[2] = { NULL, NULL, };
+    IDirect3DPixelShader9 *pixel_shader[3] = { NULL, NULL, NULL, };
     float start = 0.0f, end = 1.5f;
     HRESULT hr;
     IDirect3DDevice9 *device;
@@ -19542,6 +19542,13 @@ static void test_table_shader_fog(void)
     {
         0xffff0101,                                                             /* ps_1_1     */
         0x00000001, 0x800f0000, 0x90e40000,                                     /* mov r0, v0 */
+        0x0000ffff
+    };
+    static const DWORD pixel_shader_code2[] =
+    {
+        0xffff0101,                                                             /* ps_1_1                     */
+        0x00000051, 0xa00f0000, 0x3f800000, 0x00000000, 0x3f800000, 0x3f800000, /* def c0, 1.0, 0.0, 1.0, 1.0 */
+        0x00000001, 0x800f0000, 0xa0e40000,                                     /* mov r0, c0                 */
         0x0000ffff
     };
     static struct
@@ -19629,31 +19636,58 @@ static void test_table_shader_fog(void)
         {0, 1, 2, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x0008f600},
         {0, 1, 2, 1.2f, 1.2f, D3DFVF_XYZ,    0x000000ff},
         {1, 0, 0, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x0000ff00},
-        {1, 0, 0, 0.2f, 0.2f, D3DFVF_XYZ,    0x0055aa00},//other
+        {1, 0, 0, 0.2f, 0.2f, D3DFVF_XYZ,    0x0055aa00},//has different color compared to version without ps/vs
         {1, 0, 0, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x00986700},
-        {1, 0, 0, 1.2f, 1.2f, D3DFVF_XYZ,    0x000000ff},//other
+        {1, 0, 0, 1.2f, 1.2f, D3DFVF_XYZ,    0x000000ff},//has different color compared to version without ps/vs
         {1, 0, 1, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x0000ff00},
-        {1, 0, 1, 0.2f, 0.2f, D3DFVF_XYZ,    0x0055aa00},//other
+        {1, 0, 1, 0.2f, 0.2f, D3DFVF_XYZ,    0x0055aa00},//has different color compared to version without ps/vs
         //30-39
         {1, 0, 1, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x00986700},
-        {1, 0, 1, 1.2f, 1.2f, D3DFVF_XYZ,    0x000000ff},//other
+        {1, 0, 1, 1.2f, 1.2f, D3DFVF_XYZ,    0x000000ff},//has different color compared to version without ps/vs
         {1, 0, 2, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x00b24c00},
         {1, 0, 2, 0.2f, 0.2f, D3DFVF_XYZ,    0x00b24c00},
         {1, 0, 2, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x0008f600},
         {1, 0, 2, 1.2f, 1.2f, D3DFVF_XYZ,    0x000000ff},
         {1, 1, 0, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x0000ff00},
-        {1, 1, 0, 0.2f, 0.2f, D3DFVF_XYZ,    0x0055aa00},//other
+        {1, 1, 0, 0.2f, 0.2f, D3DFVF_XYZ,    0x0055aa00},//has different color compared to version without ps/vs
         {1, 1, 0, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x00986700},
-        {1, 1, 0, 1.2f, 1.2f, D3DFVF_XYZ,    0x000000ff},//other
-        //40-47
+        {1, 1, 0, 1.2f, 1.2f, D3DFVF_XYZ,    0x000000ff},//has different color compared to version without ps/vs
+        //40-49
         {1, 1, 1, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x0000ff00},
-        {1, 1, 1, 0.2f, 0.2f, D3DFVF_XYZ,    0x0055aa00},//other
+        {1, 1, 1, 0.2f, 0.2f, D3DFVF_XYZ,    0x0055aa00},//has different color compared to version without ps/vs
         {1, 1, 1, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x00986700},
-        {1, 1, 1, 1.2f, 1.2f, D3DFVF_XYZ,    0x000000ff},//other
+        {1, 1, 1, 1.2f, 1.2f, D3DFVF_XYZ,    0x000000ff},//has different color compared to version without ps/vs
         {1, 1, 2, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x00b24c00},
         {1, 1, 2, 0.2f, 0.2f, D3DFVF_XYZ,    0x00b24c00},
         {1, 1, 2, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x0008f600},
         {1, 1, 2, 1.2f, 1.2f, D3DFVF_XYZ,    0x000000ff},
+        {0, 2, 0, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x0000ff00},
+        {0, 2, 0, 0.2f, 0.2f, D3DFVF_XYZ,    0x000000ff},
+        //50-59
+        {0, 2, 0, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x00986798},//has different color compared to version without ps/vs
+        {0, 2, 0, 1.2f, 1.2f, D3DFVF_XYZ,    0x0008f608},//has different color compared to version without ps/vs
+        {0, 2, 1, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x0000ff00},
+        {0, 2, 1, 0.2f, 0.2f, D3DFVF_XYZ,    0x000000ff},
+        {0, 2, 1, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x00986798},//has different color compared to version without ps/vs
+        {0, 2, 1, 1.2f, 1.2f, D3DFVF_XYZ,    0x0000ff00},
+        {0, 2, 2, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x00b24cb2},//has different color compared to version without ps/vs
+        {0, 2, 2, 0.2f, 0.2f, D3DFVF_XYZ,    0x00b24cb2},//has different color compared to version without ps/vs
+        {0, 2, 2, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x0008f608},//has different color compared to version without ps/vs
+        {0, 2, 2, 1.2f, 1.2f, D3DFVF_XYZ,    0x000000ff},
+        //60-69
+        {1, 2, 0, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x0000ff00},
+        {1, 2, 0, 0.2f, 0.2f, D3DFVF_XYZ,    0x0055aa55},//has different color compared to version without ps/vs
+        {1, 2, 0, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x00986798},//has different color compared to version without ps/vs
+        {1, 2, 0, 1.2f, 1.2f, D3DFVF_XYZ,    0x000000ff},//has different color compared to version without ps/vs
+        {1, 2, 1, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x0000ff00},
+        {1, 2, 1, 0.2f, 0.2f, D3DFVF_XYZ,    0x0055aa55},//has different color compared to version without ps/vs
+        {1, 2, 1, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x00986798},//has different color compared to version without ps/vs
+        {1, 2, 1, 1.2f, 1.2f, D3DFVF_XYZ,    0x000000ff},//has different color compared to version without ps/vs
+        {1, 2, 2, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x00b24cb2},//has different color compared to version without ps/vs
+        {1, 2, 2, 0.2f, 0.2f, D3DFVF_XYZ,    0x00b24cb2},//has different color compared to version without ps/vs
+        //70-71
+        {1, 2, 2, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x0008f608},//has different color compared to version without ps/vs
+        {1, 2, 2, 1.2f, 1.2f, D3DFVF_XYZ,    0x000000ff},
     };
     unsigned int i;
 
@@ -19680,6 +19714,8 @@ static void test_table_shader_fog(void)
     hr = IDirect3DDevice9_CreateVertexShader(device, vertex_shader_code1, &vertex_shader[1]);
     ok(SUCCEEDED(hr), "CreateVertexShader failed (%08x)\n", hr);
     hr = IDirect3DDevice9_CreatePixelShader(device, pixel_shader_code1, &pixel_shader[1]);
+    ok(SUCCEEDED(hr), "CreatePixelShader failed (%08x)\n", hr);
+    hr = IDirect3DDevice9_CreatePixelShader(device, pixel_shader_code2, &pixel_shader[2]);
     ok(SUCCEEDED(hr), "CreatePixelShader failed (%08x)\n", hr);
     hr = IDirect3DDevice9_SetRenderState(device, D3DRS_LIGHTING, FALSE);
     ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
@@ -19752,6 +19788,7 @@ static void test_table_shader_fog(void)
 
     IDirect3DVertexShader9_Release(vertex_shader[1]);
     IDirect3DPixelShader9_Release(pixel_shader[1]);
+    IDirect3DPixelShader9_Release(pixel_shader[2]);
 done:
     refcount = IDirect3DDevice9_Release(device);
     ok(!refcount, "Device has %u references left.\n", refcount);
