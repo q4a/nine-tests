@@ -34,5 +34,5 @@ jobs:
       with:
         cmakeListsTxtPath: '${{ github.workspace }}/NineTests/CMakeLists.txt'
         configurePreset: default
-        configurePresetAdditionalArgs: "['-DD3D9_INCLUDE_DIR=${{ github.workspace }}\\cache\\Include', '-DD3D9_LIBRARY=${{ github.workspace }}\\cache\\Lib\\x64\\d3d9.lib']"
+        configurePresetAdditionalArgs: "[`-DD3D9_INCLUDE_DIR=${{ github.workspace }}\\cache\\Include`, `-DD3D9_LIBRARY=${{ github.workspace }}\\cache\\Lib\\x64\\d3d9.lib`]"
         buildPreset: '${{ matrix.configuration }}'
