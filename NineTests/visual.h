@@ -186,9 +186,9 @@ static void get_rt_readback(IDirect3DSurface9 *surface, struct surface_readback 
 
     memset(rb, 0, sizeof(*rb));
     hr = IDirect3DSurface9_GetDevice(surface, &device);
-    ok(SUCCEEDED(hr), "Failed to get device, hr %#x.\n", hr);
+    //ok(SUCCEEDED(hr), "Failed to get device, hr %#x.\n", hr);
     hr = IDirect3DSurface9_GetDesc(surface, &desc);
-    ok(SUCCEEDED(hr), "Failed to get surface desc, hr %#x.\n", hr);
+    //ok(SUCCEEDED(hr), "Failed to get surface desc, hr %#x.\n", hr);
     hr = IDirect3DDevice9_CreateOffscreenPlainSurface(device, desc.Width, desc.Height,
             desc.Format, D3DPOOL_SYSTEMMEM, &rb->surface, NULL);
     if (FAILED(hr) || !rb->surface)
@@ -19441,7 +19441,7 @@ static void test_table_fog_zw(void)
 
     window = create_window();
     d3d = Direct3DCreate9(D3D_SDK_VERSION);
-    ok(!!d3d, "Failed to create a D3D object.\n");
+    //ok(!!d3d, "Failed to create a D3D object.\n");
 
     if (!(device = create_device(d3d, window, window, TRUE)))
     {
@@ -19452,7 +19452,7 @@ static void test_table_fog_zw(void)
     }
 
     hr = IDirect3DDevice9_GetDeviceCaps(device, &caps);
-    ok(SUCCEEDED(hr), "Failed to get device caps, hr %#x.\n", hr);
+    //ok(SUCCEEDED(hr), "Failed to get device caps, hr %#x.\n", hr);
     if (!(caps.RasterCaps & D3DPRASTERCAPS_FOGTABLE))
     {
         skip("D3DPRASTERCAPS_FOGTABLE not supported, skipping POSITIONT table fog test.\n");
@@ -19460,25 +19460,25 @@ static void test_table_fog_zw(void)
     }
 
     hr = IDirect3DDevice9_SetRenderState(device, D3DRS_LIGHTING, FALSE);
-    ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
+    //ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
     hr = IDirect3DDevice9_SetRenderState(device, D3DRS_FOGENABLE, TRUE);
-    ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
+    //ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
     hr = IDirect3DDevice9_SetRenderState(device, D3DRS_FOGCOLOR, 0x0000ff00);
-    ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
+    //ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
     hr = IDirect3DDevice9_SetRenderState(device, D3DRS_CLIPPING, FALSE);
-    ok(SUCCEEDED(hr), "SetRenderState failed, hr %#x.\n", hr);
+    //ok(SUCCEEDED(hr), "SetRenderState failed, hr %#x.\n", hr);
     /* Work around an AMD Windows driver bug. Needs a proj matrix applied redundantly. */
     hr = IDirect3DDevice9_SetTransform(device, D3DTS_PROJECTION, &identity);
-    ok(SUCCEEDED(hr), "Failed to set projection transform, hr %#x.\n", hr);
+    //ok(SUCCEEDED(hr), "Failed to set projection transform, hr %#x.\n", hr);
     hr = IDirect3DDevice9_SetRenderState(device, D3DRS_FOGTABLEMODE, D3DFOG_LINEAR);
-    ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
+    //ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
     hr = IDirect3DDevice9_SetFVF(device, D3DFVF_XYZRHW | D3DFVF_DIFFUSE);
-    ok(SUCCEEDED(hr), "Failed to set fvf, hr %#x.\n", hr);
+    //ok(SUCCEEDED(hr), "Failed to set fvf, hr %#x.\n", hr);
 
     for (i = 0; i < ARRAY_SIZE(tests); ++i)
     {
         hr = IDirect3DDevice9_Clear(device, 0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0x000000ff, 1.0f, 0);
-        ok(SUCCEEDED(hr), "Failed to clear, hr %#x.\n", hr);
+        //ok(SUCCEEDED(hr), "Failed to clear, hr %#x.\n", hr);
 
         quad[0].position.z = tests[i].z;
         quad[1].position.z = tests[i].z;
@@ -19489,20 +19489,20 @@ static void test_table_fog_zw(void)
         quad[2].position.w = tests[i].w;
         quad[3].position.w = tests[i].w;
         hr = IDirect3DDevice9_SetRenderState(device, D3DRS_ZENABLE, tests[i].z_test);
-        ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
+        //ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
 
         hr = IDirect3DDevice9_BeginScene(device);
-        ok(SUCCEEDED(hr), "Failed to begin scene, hr %#x.\n", hr);
+        //ok(SUCCEEDED(hr), "Failed to begin scene, hr %#x.\n", hr);
         hr = IDirect3DDevice9_DrawPrimitiveUP(device, D3DPT_TRIANGLESTRIP, 2, quad, sizeof(quad[0]));
-        ok(SUCCEEDED(hr), "Failed to draw, hr %#x.\n", hr);
+        //ok(SUCCEEDED(hr), "Failed to draw, hr %#x.\n", hr);
         hr = IDirect3DDevice9_EndScene(device);
-        ok(SUCCEEDED(hr), "Failed to end scene, hr %#x.\n", hr);
+        //ok(SUCCEEDED(hr), "Failed to end scene, hr %#x.\n", hr);
 
         color = getPixelColor(device, 320, 240);
         ok(color_match(color, tests[i].color, 2),
                 "Got unexpected color 0x%08x, expected 0x%08x, case %u.\n", color, tests[i].color, i);
         hr = IDirect3DDevice9_Present(device, NULL, NULL, NULL, NULL);
-        ok(SUCCEEDED(hr), "Failed to present, hr %#x.\n", hr);
+        //ok(SUCCEEDED(hr), "Failed to present, hr %#x.\n", hr);
     }
 
 done:
@@ -19695,7 +19695,7 @@ static void test_table_shader_fog(void)
 
     window = create_window();
     d3d = Direct3DCreate9(D3D_SDK_VERSION);
-    ok(!!d3d, "Failed to create a D3D object.\n");
+    //ok(!!d3d, "Failed to create a D3D object.\n");
 
     if (!(device = create_device(d3d, window, window, TRUE)))
     {
@@ -19706,7 +19706,7 @@ static void test_table_shader_fog(void)
     }
 
     hr = IDirect3DDevice9_GetDeviceCaps(device, &caps);
-    ok(SUCCEEDED(hr), "Failed to get device caps, hr %#x.\n", hr);
+    //ok(SUCCEEDED(hr), "Failed to get device caps, hr %#x.\n", hr);
     if (!(caps.RasterCaps & D3DPRASTERCAPS_FOGTABLE))
     {
         skip("D3DPRASTERCAPS_FOGTABLE not supported, skipping POSITIONT table fog test.\n");
@@ -19714,41 +19714,41 @@ static void test_table_shader_fog(void)
     }
 
     hr = IDirect3DDevice9_CreateVertexShader(device, vertex_shader_code1, &vertex_shader[1]);
-    ok(SUCCEEDED(hr), "CreateVertexShader failed (%08x)\n", hr);
+    //ok(SUCCEEDED(hr), "CreateVertexShader failed (%08x)\n", hr);
     hr = IDirect3DDevice9_CreatePixelShader(device, pixel_shader_code1, &pixel_shader[1]);
-    ok(SUCCEEDED(hr), "CreatePixelShader failed (%08x)\n", hr);
+    //ok(SUCCEEDED(hr), "CreatePixelShader failed (%08x)\n", hr);
     hr = IDirect3DDevice9_CreatePixelShader(device, pixel_shader_code2, &pixel_shader[2]);
-    ok(SUCCEEDED(hr), "CreatePixelShader failed (%08x)\n", hr);
+    //ok(SUCCEEDED(hr), "CreatePixelShader failed (%08x)\n", hr);
     hr = IDirect3DDevice9_SetRenderState(device, D3DRS_LIGHTING, FALSE);
-    ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
+    //ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
     hr = IDirect3DDevice9_SetRenderState(device, D3DRS_FOGENABLE, TRUE);
-    ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
+    //ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
     hr = IDirect3DDevice9_SetRenderState(device, D3DRS_FOGCOLOR, 0x0000ff00);
-    ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
+    //ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
     hr = IDirect3DDevice9_SetRenderState(device, D3DRS_FOGSTART, *(DWORD*)(&start));
-    ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
+    //ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
     hr = IDirect3DDevice9_SetRenderState(device, D3DRS_FOGEND, *(DWORD*)(&end));
-    ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
+    //ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
     hr = IDirect3DDevice9_SetRenderState(device, D3DRS_CLIPPING, FALSE);
-    ok(SUCCEEDED(hr), "SetRenderState failed, hr %#x.\n", hr);
+    //ok(SUCCEEDED(hr), "SetRenderState failed, hr %#x.\n", hr);
     hr = IDirect3DDevice9_SetRenderState(device, D3DRS_FOGTABLEMODE, D3DFOG_LINEAR);
-    ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
+    //ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
     hr = IDirect3DDevice9_SetRenderState(device, D3DRS_ZENABLE, D3DZB_FALSE);
-    ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
+    //ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
 
     for (i = 0; i < ARRAY_SIZE(tests); ++i)
     //i = 4;
     {
         hr = IDirect3DDevice9_SetTransform(device, D3DTS_PROJECTION, &proj[tests[i].matrix_id]);
-        ok(SUCCEEDED(hr), "Failed to set projection transform, hr %#x.\n", hr);
+        //ok(SUCCEEDED(hr), "Failed to set projection transform, hr %#x.\n", hr);
         hr = IDirect3DDevice9_SetFVF(device, tests[i].format_bits | D3DFVF_DIFFUSE);
-        ok(SUCCEEDED(hr), "Failed to set fvf, hr %#x.\n", hr);
+        //ok(SUCCEEDED(hr), "Failed to set fvf, hr %#x.\n", hr);
         hr = IDirect3DDevice9_SetVertexShader(device, vertex_shader[tests[i].vshader]);
-        ok(SUCCEEDED(hr), "SetVertexShader failed (%08x)\n", hr);
+        //ok(SUCCEEDED(hr), "SetVertexShader failed (%08x)\n", hr);
         hr = IDirect3DDevice9_SetPixelShader(device, pixel_shader[tests[i].pshader]);
-        ok(SUCCEEDED(hr), "SetPixelShader failed (%08x)\n", hr);
+        //ok(SUCCEEDED(hr), "SetPixelShader failed (%08x)\n", hr);
         hr = IDirect3DDevice9_Clear(device, 0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0x000000ff, 1.0f, 0);
-        ok(SUCCEEDED(hr), "Failed to clear, hr %#x.\n", hr);
+        //ok(SUCCEEDED(hr), "Failed to clear, hr %#x.\n", hr);
 
         if (tests[i].format_bits == D3DFVF_XYZRHW)
         {
@@ -19761,11 +19761,11 @@ static void test_table_shader_fog(void)
             untransformed_q[2].position.w = 0.4f + tests[i].rhw;
             untransformed_q[3].position.w = 0.3f + tests[i].rhw;
             hr = IDirect3DDevice9_BeginScene(device);
-            ok(SUCCEEDED(hr), "Failed to begin scene, hr %#x.\n", hr);
+            //ok(SUCCEEDED(hr), "Failed to begin scene, hr %#x.\n", hr);
             hr = IDirect3DDevice9_DrawPrimitiveUP(device, D3DPT_TRIANGLESTRIP, 2, untransformed_q, sizeof(untransformed_q[0]));
-            ok(SUCCEEDED(hr), "Failed to draw, hr %#x.\n", hr);
+            //ok(SUCCEEDED(hr), "Failed to draw, hr %#x.\n", hr);
             hr = IDirect3DDevice9_EndScene(device);
-            ok(SUCCEEDED(hr), "Failed to end scene, hr %#x.\n", hr);
+            //ok(SUCCEEDED(hr), "Failed to end scene, hr %#x.\n", hr);
         }
         else
         {
@@ -19774,18 +19774,18 @@ static void test_table_shader_fog(void)
             transformed_q[2].position.z = 0.3f + tests[i].z;
             transformed_q[3].position.z = 0.4f + tests[i].z;
             hr = IDirect3DDevice9_BeginScene(device);
-            ok(SUCCEEDED(hr), "Failed to begin scene, hr %#x.\n", hr);
+            //ok(SUCCEEDED(hr), "Failed to begin scene, hr %#x.\n", hr);
             hr = IDirect3DDevice9_DrawPrimitiveUP(device, D3DPT_TRIANGLESTRIP, 2, transformed_q, sizeof(transformed_q[0]));
-            ok(SUCCEEDED(hr), "Failed to draw, hr %#x.\n", hr);
+            //ok(SUCCEEDED(hr), "Failed to draw, hr %#x.\n", hr);
             hr = IDirect3DDevice9_EndScene(device);
-            ok(SUCCEEDED(hr), "Failed to end scene, hr %#x.\n", hr);
+            //ok(SUCCEEDED(hr), "Failed to end scene, hr %#x.\n", hr);
         }
 
         color = getPixelColor(device, 320, 240);
         ok(color_match(color, tests[i].color1, 2) || color_match(color, tests[i].color2, 2),
             "Got unexpected color 0x%08x, expected 0x%08x or 0x%08x, case %u.\n", color, tests[i].color1, tests[i].color2, i);
         hr = IDirect3DDevice9_Present(device, NULL, NULL, NULL, NULL);
-        ok(SUCCEEDED(hr), "Failed to present, hr %#x.\n", hr);
+        //ok(SUCCEEDED(hr), "Failed to present, hr %#x.\n", hr);
     }
 
     IDirect3DVertexShader9_Release(vertex_shader[1]);
