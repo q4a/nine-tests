@@ -19521,7 +19521,6 @@ static void test_table_shader_fog(void)
     HRESULT hr;
     IDirect3DDevice9 *device;
     IDirect3D9 *d3d;
-    IDirect3DSurface9 *ds;
     ULONG refcount;
     HWND window;
     D3DCAPS9 caps;
@@ -19721,6 +19720,16 @@ static void test_table_shader_fog(void)
         skip("D3DPRASTERCAPS_FOGTABLE not supported, skipping POSITIONT table fog test.\n");
         goto done;
     }
+    if (caps.VertexShaderVersion < D3DVS_VERSION(1, 1))
+    {
+        skip("No vs_1_1 support, skipping test_table_shader_fog.\n");
+        goto done;
+    }
+    if (caps.PixelShaderVersion < D3DPS_VERSION(2, 0))
+    {
+        skip("No ps_2_0 support, skipping test_table_shader_fog.\n");
+        goto done;
+    }
 
     hr = IDirect3DDevice9_CreateVertexShader(device, vertex_shader_code1, &vertex_shader[1]);
     ok(SUCCEEDED(hr), "CreateVertexShader failed, hr %#lx.\n", hr);
@@ -19734,9 +19743,11 @@ static void test_table_shader_fog(void)
     ok(SUCCEEDED(hr), "Failed to set render state, hr %#lx.\n", hr);
     hr = IDirect3DDevice9_SetRenderState(device, D3DRS_FOGCOLOR, 0x0000ff00);
     ok(SUCCEEDED(hr), "Failed to set render state, hr %#lx.\n", hr);
-    hr = IDirect3DDevice9_SetRenderState(device, D3DRS_FOGSTART, *(DWORD*)(&start));
+    conv.f = start;
+    hr = IDirect3DDevice9_SetRenderState(device, D3DRS_FOGSTART, conv.d);
     ok(SUCCEEDED(hr), "Failed to set render state, hr %#lx.\n", hr);
-    hr = IDirect3DDevice9_SetRenderState(device, D3DRS_FOGEND, *(DWORD*)(&end));
+    conv.f = end;
+    hr = IDirect3DDevice9_SetRenderState(device, D3DRS_FOGEND, conv.d);
     ok(SUCCEEDED(hr), "Failed to set render state, hr %#lx.\n", hr);
     hr = IDirect3DDevice9_SetRenderState(device, D3DRS_CLIPPING, FALSE);
     ok(SUCCEEDED(hr), "SetRenderState failed, hr %#lx.\n", hr);
@@ -19744,14 +19755,6 @@ static void test_table_shader_fog(void)
     ok(SUCCEEDED(hr), "Failed to set render state, hr %#lx.\n", hr);
     hr = IDirect3DDevice9_SetRenderState(device, D3DRS_ZENABLE, D3DZB_FALSE);
     ok(SUCCEEDED(hr), "Failed to set render state, hr %#lx.\n", hr);
-    hr = IDirect3DDevice9_SetRenderState(device, D3DRS_TEXTUREFACTOR, 0x00ff00ff);
-    ok(SUCCEEDED(hr), "Failed to set render state, hr %#lx.\n", hr);
-    hr = IDirect3DDevice9_CreateDepthStencilSurface(device, 640, 480, D3DFMT_D24X8,
-        D3DMULTISAMPLE_NONE, 0, FALSE, &ds, NULL);
-    ok(SUCCEEDED(hr), "Failed to create depth stencil surface, hr %#lx.\n", hr);
-    hr = IDirect3DDevice9_SetDepthStencilSurface(device, ds);
-    ok(SUCCEEDED(hr), "Failed to set depth stencil surface, hr %#lx.\n", hr);
-
     for (i = 0; i < ARRAY_SIZE(tests); ++i)
     {
         hr = IDirect3DDevice9_SetTransform(device, D3DTS_PROJECTION, &proj[tests[i].matrix_id]);
@@ -19809,7 +19812,6 @@ static void test_table_shader_fog(void)
     IDirect3DVertexShader9_Release(vertex_shader[1]);
     IDirect3DPixelShader9_Release(pixel_shader[1]);
     IDirect3DPixelShader9_Release(pixel_shader[2]);
-    IDirect3DSurface9_Release(ds);
 done:
     refcount = IDirect3DDevice9_Release(device);
     ok(!refcount, "Device has %lu references left.\n", refcount);
