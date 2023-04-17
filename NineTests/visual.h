@@ -19517,13 +19517,13 @@ static void test_table_shader_fog(void)
     IDirect3DVertexShader9 *vertex_shader[2] = { NULL, NULL, };
     IDirect3DPixelShader9 *pixel_shader[3] = { NULL, NULL, NULL, };
     float start = 0.0f, end = 1.5f;
+    unsigned int color;
     HRESULT hr;
     IDirect3DDevice9 *device;
     IDirect3D9 *d3d;
     IDirect3DSurface9 *ds;
     ULONG refcount;
     HWND window;
-    D3DCOLOR color;
     D3DCAPS9 caps;
     /* basic vertex shader with reversed fog computation ("foggy") */
     static const DWORD vertex_shader_code1[] =
@@ -19545,6 +19545,7 @@ static void test_table_shader_fog(void)
         0x00000001, 0x800f0000, 0x90e40000,                                     /* mov r0, v0 */
         0x0000ffff
     };
+    /* pixel shader with oDepth = 0.5 */
     static const DWORD pixel_shader_code2[] =
     {
         0xffff0200,                                                             /* ps_2_0                     */
@@ -19557,7 +19558,7 @@ static void test_table_shader_fog(void)
     static struct
     {
         struct vec4 position;
-        D3DCOLOR diffuse;
+        unsigned int diffuse;
     }
     untransformed_q[] =
     {
@@ -19569,7 +19570,7 @@ static void test_table_shader_fog(void)
     static struct
     {
         struct vec3 position;
-        D3DCOLOR diffuse;
+        unsigned int diffuse;
     }
     transformed_q[] =
     {
@@ -19579,7 +19580,7 @@ static void test_table_shader_fog(void)
         {{ 0.5f, -0.5f, 0.0f}, 0xffff0000},
     };
 
-    // projection matrix.
+    /* projection matrix */
     static const D3DMATRIX proj[] =
     {
     {{{
@@ -19611,98 +19612,93 @@ static void test_table_shader_fog(void)
     {
         int vshader, pshader;
         unsigned int matrix_id;
-        float z, rhw;
+        float z, rhw, depth_bias;
         unsigned int format_bits;
-        D3DCOLOR color1, color2;
+        unsigned int color1; /* Colors received in Windows with: Radeon HD 8400, HD 6450 and GeForce Go 7300 */
+        unsigned int color2; /* Colors received in Windows with Ivy Bridge GT1 */
     }
     tests[] =
     {
-        //0-9
-        {0, 0, 0, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x0000ff00, 0x0000ff00},
-        {0, 0, 0, 0.2f, 0.2f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
-        {0, 0, 0, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x00986700, 0x00986700},
-        {0, 0, 0, 1.2f, 1.2f, D3DFVF_XYZ,    0x0008f600, 0x0008f600},
-        {0, 0, 1, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x0000ff00, 0x0000ff00},
-        {0, 0, 1, 0.2f, 0.2f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
-        {0, 0, 1, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x00986700, 0x00986700},
-        {0, 0, 1, 1.2f, 1.2f, D3DFVF_XYZ,    0x0000ff00, 0x0000ff00},
-        {0, 0, 2, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x00b24c00, 0x00b24c00},
-        {0, 0, 2, 0.2f, 0.2f, D3DFVF_XYZ,    0x00b24c00, 0x00b24c00},
-        //10-19
-        {0, 0, 2, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x0008f600, 0x0008f600},
-        {0, 0, 2, 1.2f, 1.2f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
-        {0, 1, 0, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x0000ff00, 0x0000ff00},
-        {0, 1, 0, 0.2f, 0.2f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
-        {0, 1, 0, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x00986700, 0x00986700},
-        {0, 1, 0, 1.2f, 1.2f, D3DFVF_XYZ,    0x0008f600, 0x0008f600},
-        {0, 1, 1, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x0000ff00, 0x0000ff00},
-        {0, 1, 1, 0.2f, 0.2f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
-        {0, 1, 1, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x00986700, 0x00986700},
-        {0, 1, 1, 1.2f, 1.2f, D3DFVF_XYZ,    0x0000ff00, 0x0000ff00},
-        //20-29
-        {0, 1, 2, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x00b24c00, 0x00b24c00},
-        {0, 1, 2, 0.2f, 0.2f, D3DFVF_XYZ,    0x00b24c00, 0x00b24c00},
-        {0, 1, 2, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x0008f600, 0x0008f600},
-        {0, 1, 2, 1.2f, 1.2f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
-        {1, 0, 0, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x0000ff00, 0x0000ff00},
-        {1, 0, 0, 0.2f, 0.2f, D3DFVF_XYZ,    0x0055aa00, 0x0055aa00},//has different color compared to version without ps/vs
-        {1, 0, 0, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x00986700, 0x00986700},
-        {1, 0, 0, 1.2f, 1.2f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},//has different color compared to version without ps/vs
-        {1, 0, 1, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x0000ff00, 0x0000ff00},
-        {1, 0, 1, 0.2f, 0.2f, D3DFVF_XYZ,    0x0055aa00, 0x0055aa00},//has different color compared to version without ps/vs
-        //30-39
-        {1, 0, 1, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x00986700, 0x00986700},
-        {1, 0, 1, 1.2f, 1.2f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},//has different color compared to version without ps/vs
-        {1, 0, 2, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x00b24c00, 0x00b24c00},
-        {1, 0, 2, 0.2f, 0.2f, D3DFVF_XYZ,    0x00b24c00, 0x00b24c00},
-        {1, 0, 2, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x0008f600, 0x0008f600},
-        {1, 0, 2, 1.2f, 1.2f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
-        {1, 1, 0, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x0000ff00, 0x0000ff00},
-        {1, 1, 0, 0.2f, 0.2f, D3DFVF_XYZ,    0x0055aa00, 0x0055aa00},//has different color compared to version without ps/vs
-        {1, 1, 0, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x00986700, 0x00986700},
-        {1, 1, 0, 1.2f, 1.2f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},//has different color compared to version without ps/vs
-        //40-43
-        {1, 1, 1, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x0000ff00, 0x0000ff00},
-        {1, 1, 1, 0.2f, 0.2f, D3DFVF_XYZ,    0x0055aa00, 0x0055aa00},//has different color compared to version without ps/vs
-        {1, 1, 1, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x00986700, 0x00986700},
-        {1, 1, 1, 1.2f, 1.2f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},//has different color compared to version without ps/vs
-
-        //44-53 - will have depth bias of 0.2
-        //colors 44-47 was equal to 32-35, colors 48-53 was equal to 0-5
-        //depth bias changed color:
-        {1, 1, 2, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x00906e00, 0x00906e00},
-        {1, 1, 2, 0.2f, 0.2f, D3DFVF_XYZ,    0x00906e00, 0x00906e00},
-        {1, 1, 2, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x0000ff00, 0x0000ff00},
-        //depth bias did not change color:
-        {1, 1, 2, 1.2f, 1.2f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
-        {0, 2, 0, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x0000ff00, 0x0000ff00},
-        {0, 2, 0, 0.2f, 0.2f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
-        {0, 2, 0, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x00986700, 0x00986700},
-        {0, 2, 0, 1.2f, 1.2f, D3DFVF_XYZ,    0x0008f600, 0x0008f600},
-        {0, 2, 1, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x0000ff00, 0x0000ff00},
-        {0, 2, 1, 0.2f, 0.2f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
-
-        //54-59
-        {0, 2, 1, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x00986700, 0x00986700},
-        {0, 2, 1, 1.2f, 1.2f, D3DFVF_XYZ,    0x0000ff00, 0x0000ff00},
-        {0, 2, 2, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x00b24c00, 0x00aa5500},//Radeon HD8400-left, Ivy Bridge GT1-right
-        {0, 2, 2, 0.2f, 0.2f, D3DFVF_XYZ,    0x00b24c00, 0x00aa5500},//Radeon HD8400-left, Ivy Bridge GT1-right
-        {0, 2, 2, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x0008f600, 0x00aa5500},//Radeon HD8400-left, Ivy Bridge GT1-right
-        {0, 2, 2, 1.2f, 1.2f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
-        //60-69
-        {1, 2, 0, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x0000ff00, 0x0000ff00},
-        {1, 2, 0, 0.2f, 0.2f, D3DFVF_XYZ,    0x0055aa00, 0x0055aa00},
-        {1, 2, 0, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x00986700, 0x00986700},
-        {1, 2, 0, 1.2f, 1.2f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
-        {1, 2, 1, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x0000ff00, 0x0000ff00},
-        {1, 2, 1, 0.2f, 0.2f, D3DFVF_XYZ,    0x0055aa00, 0x0055aa00},
-        {1, 2, 1, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x00986700, 0x00986700},
-        {1, 2, 1, 1.2f, 1.2f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
-        {1, 2, 2, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x00b24c00, 0x00aa5500},//Radeon HD8400-left, Ivy Bridge GT1-right
-        {1, 2, 2, 0.2f, 0.2f, D3DFVF_XYZ,    0x00b24c00, 0x00aa5500},//Radeon HD8400-left, Ivy Bridge GT1-right
-        //70-71
-        {1, 2, 2, 1.2f, 1.2f, D3DFVF_XYZRHW, 0x0008f600, 0x00aa5500},//Radeon HD8400-left, Ivy Bridge GT1-right
-        {1, 2, 2, 1.2f, 1.2f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
+        /* cases 0-9 */
+        {0, 0, 0, 0.2f, 0.2f, 0.0f, D3DFVF_XYZRHW, 0x0000ff00, 0x0000ff00},
+        {0, 0, 0, 0.2f, 0.2f, 0.0f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
+        {0, 0, 0, 1.2f, 1.2f, 0.0f, D3DFVF_XYZRHW, 0x00986700, 0x00986700},
+        {0, 0, 0, 1.2f, 1.2f, 0.0f, D3DFVF_XYZ,    0x0008f600, 0x0008f600},
+        {0, 0, 1, 0.2f, 0.2f, 0.0f, D3DFVF_XYZRHW, 0x0000ff00, 0x0000ff00},
+        {0, 0, 1, 0.2f, 0.2f, 0.0f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
+        {0, 0, 1, 1.2f, 1.2f, 0.0f, D3DFVF_XYZRHW, 0x00986700, 0x00986700},
+        {0, 0, 1, 1.2f, 1.2f, 0.0f, D3DFVF_XYZ,    0x0000ff00, 0x0000ff00},
+        {0, 0, 2, 0.2f, 0.2f, 0.0f, D3DFVF_XYZRHW, 0x00b24c00, 0x00b24c00},
+        {0, 0, 2, 0.2f, 0.2f, 0.0f, D3DFVF_XYZ,    0x00b24c00, 0x00b24c00},
+        /* cases 10-19 */
+        {0, 0, 2, 1.2f, 1.2f, 0.0f, D3DFVF_XYZRHW, 0x0008f600, 0x0008f600},
+        {0, 0, 2, 1.2f, 1.2f, 0.0f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
+        {0, 1, 0, 0.2f, 0.2f, 0.0f, D3DFVF_XYZRHW, 0x0000ff00, 0x0000ff00},
+        {0, 1, 0, 0.2f, 0.2f, 0.0f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
+        {0, 1, 0, 1.2f, 1.2f, 0.0f, D3DFVF_XYZRHW, 0x00986700, 0x00986700},
+        {0, 1, 0, 1.2f, 1.2f, 0.0f, D3DFVF_XYZ,    0x0008f600, 0x0008f600},
+        {0, 1, 1, 0.2f, 0.2f, 0.0f, D3DFVF_XYZRHW, 0x0000ff00, 0x0000ff00},
+        {0, 1, 1, 0.2f, 0.2f, 0.0f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
+        {0, 1, 1, 1.2f, 1.2f, 0.0f, D3DFVF_XYZRHW, 0x00986700, 0x00986700},
+        {0, 1, 1, 1.2f, 1.2f, 0.0f, D3DFVF_XYZ,    0x0000ff00, 0x0000ff00},
+        /* cases 20-29 */
+        {0, 1, 2, 0.2f, 0.2f, 0.0f, D3DFVF_XYZRHW, 0x00b24c00, 0x00b24c00},
+        {0, 1, 2, 0.2f, 0.2f, 0.0f, D3DFVF_XYZ,    0x00b24c00, 0x00b24c00},
+        {0, 1, 2, 1.2f, 1.2f, 0.0f, D3DFVF_XYZRHW, 0x0008f600, 0x0008f600},
+        {0, 1, 2, 1.2f, 1.2f, 0.0f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
+        {1, 0, 0, 0.2f, 0.2f, 0.0f, D3DFVF_XYZRHW, 0x0000ff00, 0x0000ff00},
+        {1, 0, 0, 0.2f, 0.2f, 0.0f, D3DFVF_XYZ,    0x0055aa00, 0x0055aa00},
+        {1, 0, 0, 1.2f, 1.2f, 0.0f, D3DFVF_XYZRHW, 0x00986700, 0x00986700},
+        {1, 0, 0, 1.2f, 1.2f, 0.0f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
+        {1, 0, 1, 0.2f, 0.2f, 0.0f, D3DFVF_XYZRHW, 0x0000ff00, 0x0000ff00},
+        {1, 0, 1, 0.2f, 0.2f, 0.0f, D3DFVF_XYZ,    0x0055aa00, 0x0055aa00},
+        /* cases 30-39 */
+        {1, 0, 1, 1.2f, 1.2f, 0.0f, D3DFVF_XYZRHW, 0x00986700, 0x00986700},
+        {1, 0, 1, 1.2f, 1.2f, 0.0f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
+        {1, 0, 2, 0.2f, 0.2f, 0.0f, D3DFVF_XYZRHW, 0x00b24c00, 0x00b24c00},
+        {1, 0, 2, 0.2f, 0.2f, 0.0f, D3DFVF_XYZ,    0x00b24c00, 0x00b24c00},
+        {1, 0, 2, 1.2f, 1.2f, 0.0f, D3DFVF_XYZRHW, 0x0008f600, 0x0008f600},
+        {1, 0, 2, 1.2f, 1.2f, 0.0f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
+        {1, 1, 0, 0.2f, 0.2f, 0.0f, D3DFVF_XYZRHW, 0x0000ff00, 0x0000ff00},
+        {1, 1, 0, 0.2f, 0.2f, 0.0f, D3DFVF_XYZ,    0x0055aa00, 0x0055aa00},
+        {1, 1, 0, 1.2f, 1.2f, 0.0f, D3DFVF_XYZRHW, 0x00986700, 0x00986700},
+        {1, 1, 0, 1.2f, 1.2f, 0.0f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
+        /* cases 40-49 */
+        {1, 1, 1, 0.2f, 0.2f, 0.0f, D3DFVF_XYZRHW, 0x0000ff00, 0x0000ff00},
+        {1, 1, 1, 0.2f, 0.2f, 0.0f, D3DFVF_XYZ,    0x0055aa00, 0x0055aa00},
+        {1, 1, 1, 1.2f, 1.2f, 0.0f, D3DFVF_XYZRHW, 0x00986700, 0x00986700},
+        {1, 1, 1, 1.2f, 1.2f, 0.0f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
+        {1, 1, 2, 0.2f, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x00906e00, 0x00906e00},
+        {1, 1, 2, 0.2f, 0.2f, 0.2f, D3DFVF_XYZ,    0x00906e00, 0x00906e00},
+        {1, 1, 2, 1.2f, 1.2f, 0.2f, D3DFVF_XYZRHW, 0x0000ff00, 0x0000ff00},
+        {1, 1, 2, 1.2f, 1.2f, 0.2f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
+        {0, 2, 0, 0.2f, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x0000ff00, 0x0000ff00},
+        {0, 2, 0, 0.2f, 0.2f, 0.2f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
+        /* cases 50-59 */
+        {0, 2, 0, 1.2f, 1.2f, 0.2f, D3DFVF_XYZRHW, 0x00986700, 0x00986700},
+        {0, 2, 0, 1.2f, 1.2f, 0.2f, D3DFVF_XYZ,    0x0008f600, 0x0008f600},
+        {0, 2, 1, 0.2f, 0.2f, 0.2f, D3DFVF_XYZRHW, 0x0000ff00, 0x0000ff00},
+        {0, 2, 1, 0.2f, 0.2f, 0.2f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
+        {0, 2, 1, 1.2f, 1.2f, 0.0f, D3DFVF_XYZRHW, 0x00986700, 0x00986700},
+        {0, 2, 1, 1.2f, 1.2f, 0.0f, D3DFVF_XYZ,    0x0000ff00, 0x0000ff00},
+        {0, 2, 2, 0.2f, 0.2f, 0.0f, D3DFVF_XYZRHW, 0x00b24c00, 0x00aa5500}, /* color1 != color2 */
+        {0, 2, 2, 0.2f, 0.2f, 0.0f, D3DFVF_XYZ,    0x00b24c00, 0x00aa5500}, /* color1 != color2 */
+        {0, 2, 2, 1.2f, 1.2f, 0.0f, D3DFVF_XYZRHW, 0x0008f600, 0x00aa5500}, /* color1 != color2 */
+        {0, 2, 2, 1.2f, 1.2f, 0.0f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
+        /* cases 60-69 */
+        {1, 2, 0, 0.2f, 0.2f, 0.0f, D3DFVF_XYZRHW, 0x0000ff00, 0x0000ff00},
+        {1, 2, 0, 0.2f, 0.2f, 0.0f, D3DFVF_XYZ,    0x0055aa00, 0x0055aa00},
+        {1, 2, 0, 1.2f, 1.2f, 0.0f, D3DFVF_XYZRHW, 0x00986700, 0x00986700},
+        {1, 2, 0, 1.2f, 1.2f, 0.0f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
+        {1, 2, 1, 0.2f, 0.2f, 0.0f, D3DFVF_XYZRHW, 0x0000ff00, 0x0000ff00},
+        {1, 2, 1, 0.2f, 0.2f, 0.0f, D3DFVF_XYZ,    0x0055aa00, 0x0055aa00},
+        {1, 2, 1, 1.2f, 1.2f, 0.0f, D3DFVF_XYZRHW, 0x00986700, 0x00986700},
+        {1, 2, 1, 1.2f, 1.2f, 0.0f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
+        {1, 2, 2, 0.2f, 0.2f, 0.0f, D3DFVF_XYZRHW, 0x00b24c00, 0x00aa5500}, /* color1 != color2 */
+        {1, 2, 2, 0.2f, 0.2f, 0.0f, D3DFVF_XYZ,    0x00b24c00, 0x00aa5500}, /* color1 != color2 */
+        /* cases 70-71 */
+        {1, 2, 2, 1.2f, 1.2f, 0.0f, D3DFVF_XYZRHW, 0x0008f600, 0x00aa5500}, /* color1 != color2 */
+        {1, 2, 2, 1.2f, 1.2f, 0.0f, D3DFVF_XYZ,    0x000000ff, 0x000000ff},
     };
     unsigned int i;
 
@@ -19719,7 +19715,7 @@ static void test_table_shader_fog(void)
     }
 
     hr = IDirect3DDevice9_GetDeviceCaps(device, &caps);
-    ok(SUCCEEDED(hr), "Failed to get device caps, hr %#x.\n", hr);
+    ok(SUCCEEDED(hr), "Failed to get device caps, hr %#lx.\n", hr);
     if (!(caps.RasterCaps & D3DPRASTERCAPS_FOGTABLE))
     {
         skip("D3DPRASTERCAPS_FOGTABLE not supported, skipping POSITIONT table fog test.\n");
@@ -19727,54 +19723,50 @@ static void test_table_shader_fog(void)
     }
 
     hr = IDirect3DDevice9_CreateVertexShader(device, vertex_shader_code1, &vertex_shader[1]);
-    ok(SUCCEEDED(hr), "CreateVertexShader failed (%08x)\n", hr);
+    ok(SUCCEEDED(hr), "CreateVertexShader failed, hr %#lx.\n", hr);
     hr = IDirect3DDevice9_CreatePixelShader(device, pixel_shader_code1, &pixel_shader[1]);
-    ok(SUCCEEDED(hr), "CreatePixelShader failed (%08x)\n", hr);
+    ok(SUCCEEDED(hr), "CreatePixelShader failed, hr %#lx.\n", hr);
     hr = IDirect3DDevice9_CreatePixelShader(device, pixel_shader_code2, &pixel_shader[2]);
-    ok(SUCCEEDED(hr), "CreatePixelShader failed (%08x)\n", hr);
+    ok(SUCCEEDED(hr), "CreatePixelShader failed, hr %#lx.\n", hr);
     hr = IDirect3DDevice9_SetRenderState(device, D3DRS_LIGHTING, FALSE);
-    ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
+    ok(SUCCEEDED(hr), "Failed to set render state, hr %#lx.\n", hr);
     hr = IDirect3DDevice9_SetRenderState(device, D3DRS_FOGENABLE, TRUE);
-    ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
+    ok(SUCCEEDED(hr), "Failed to set render state, hr %#lx.\n", hr);
     hr = IDirect3DDevice9_SetRenderState(device, D3DRS_FOGCOLOR, 0x0000ff00);
-    ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
+    ok(SUCCEEDED(hr), "Failed to set render state, hr %#lx.\n", hr);
     hr = IDirect3DDevice9_SetRenderState(device, D3DRS_FOGSTART, *(DWORD*)(&start));
-    ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
+    ok(SUCCEEDED(hr), "Failed to set render state, hr %#lx.\n", hr);
     hr = IDirect3DDevice9_SetRenderState(device, D3DRS_FOGEND, *(DWORD*)(&end));
-    ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
+    ok(SUCCEEDED(hr), "Failed to set render state, hr %#lx.\n", hr);
     hr = IDirect3DDevice9_SetRenderState(device, D3DRS_CLIPPING, FALSE);
-    ok(SUCCEEDED(hr), "SetRenderState failed, hr %#x.\n", hr);
+    ok(SUCCEEDED(hr), "SetRenderState failed, hr %#lx.\n", hr);
     hr = IDirect3DDevice9_SetRenderState(device, D3DRS_FOGTABLEMODE, D3DFOG_LINEAR);
-    ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
+    ok(SUCCEEDED(hr), "Failed to set render state, hr %#lx.\n", hr);
     hr = IDirect3DDevice9_SetRenderState(device, D3DRS_ZENABLE, D3DZB_FALSE);
-    ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
+    ok(SUCCEEDED(hr), "Failed to set render state, hr %#lx.\n", hr);
     hr = IDirect3DDevice9_SetRenderState(device, D3DRS_TEXTUREFACTOR, 0x00ff00ff);
-    ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
+    ok(SUCCEEDED(hr), "Failed to set render state, hr %#lx.\n", hr);
     hr = IDirect3DDevice9_CreateDepthStencilSurface(device, 640, 480, D3DFMT_D24X8,
         D3DMULTISAMPLE_NONE, 0, FALSE, &ds, NULL);
-    ok(SUCCEEDED(hr), "Failed to create depth stencil surface, hr %#x.\n", hr);
+    ok(SUCCEEDED(hr), "Failed to create depth stencil surface, hr %#lx.\n", hr);
     hr = IDirect3DDevice9_SetDepthStencilSurface(device, ds);
-    ok(SUCCEEDED(hr), "Failed to set depth stencil surface, hr %#x.\n", hr);
+    ok(SUCCEEDED(hr), "Failed to set depth stencil surface, hr %#lx.\n", hr);
 
     for (i = 0; i < ARRAY_SIZE(tests); ++i)
     {
         hr = IDirect3DDevice9_SetTransform(device, D3DTS_PROJECTION, &proj[tests[i].matrix_id]);
-        ok(SUCCEEDED(hr), "Failed to set projection transform, hr %#x.\n", hr);
+        ok(SUCCEEDED(hr), "Failed to set projection transform, hr %#lx.\n", hr);
         hr = IDirect3DDevice9_SetFVF(device, tests[i].format_bits | D3DFVF_DIFFUSE);
-        ok(SUCCEEDED(hr), "Failed to set fvf, hr %#x.\n", hr);
+        ok(SUCCEEDED(hr), "Failed to set fvf, hr %#lx.\n", hr);
         hr = IDirect3DDevice9_SetVertexShader(device, vertex_shader[tests[i].vshader]);
-        ok(SUCCEEDED(hr), "SetVertexShader failed (%08x)\n", hr);
+        ok(SUCCEEDED(hr), "SetVertexShader failed, hr %#lx.\n", hr);
         hr = IDirect3DDevice9_SetPixelShader(device, pixel_shader[tests[i].pshader]);
-        ok(SUCCEEDED(hr), "SetPixelShader failed (%08x)\n", hr);
-        hr = IDirect3DDevice9_Clear(device, 0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0x000000ff, 1.0f, 0);
-        ok(SUCCEEDED(hr), "Failed to clear, hr %#x.\n", hr);
-
-        if (44 <= i && i <= 53)
-            conv.f = 0.2f;
-        else
-            conv.f = 0.0f;
+        ok(SUCCEEDED(hr), "SetPixelShader failed, hr %#lx.\n", hr);
+        conv.f = tests[i].depth_bias;
         hr = IDirect3DDevice9_SetRenderState(device, D3DRS_DEPTHBIAS, conv.d);
-        ok(SUCCEEDED(hr), "Failed to set render state, hr %#x.\n", hr);
+        ok(SUCCEEDED(hr), "Failed to set render state, hr %#lx.\n", hr);
+        hr = IDirect3DDevice9_Clear(device, 0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, 0x000000ff, 1.0f, 0);
+        ok(SUCCEEDED(hr), "Failed to clear, hr %#lx.\n", hr);
 
         if (tests[i].format_bits == D3DFVF_XYZRHW)
         {
@@ -19787,11 +19779,11 @@ static void test_table_shader_fog(void)
             untransformed_q[2].position.w = 0.4f + tests[i].rhw;
             untransformed_q[3].position.w = 0.3f + tests[i].rhw;
             hr = IDirect3DDevice9_BeginScene(device);
-            ok(SUCCEEDED(hr), "Failed to begin scene, hr %#x.\n", hr);
+            ok(SUCCEEDED(hr), "Failed to begin scene, hr %#lx.\n", hr);
             hr = IDirect3DDevice9_DrawPrimitiveUP(device, D3DPT_TRIANGLESTRIP, 2, untransformed_q, sizeof(untransformed_q[0]));
-            ok(SUCCEEDED(hr), "Failed to draw, hr %#x.\n", hr);
+            ok(SUCCEEDED(hr), "Failed to draw, hr %#lx.\n", hr);
             hr = IDirect3DDevice9_EndScene(device);
-            ok(SUCCEEDED(hr), "Failed to end scene, hr %#x.\n", hr);
+            ok(SUCCEEDED(hr), "Failed to end scene, hr %#lx.\n", hr);
         }
         else
         {
@@ -19800,18 +19792,18 @@ static void test_table_shader_fog(void)
             transformed_q[2].position.z = 0.3f + tests[i].z;
             transformed_q[3].position.z = 0.4f + tests[i].z;
             hr = IDirect3DDevice9_BeginScene(device);
-            ok(SUCCEEDED(hr), "Failed to begin scene, hr %#x.\n", hr);
+            ok(SUCCEEDED(hr), "Failed to begin scene, hr %#lx.\n", hr);
             hr = IDirect3DDevice9_DrawPrimitiveUP(device, D3DPT_TRIANGLESTRIP, 2, transformed_q, sizeof(transformed_q[0]));
-            ok(SUCCEEDED(hr), "Failed to draw, hr %#x.\n", hr);
+            ok(SUCCEEDED(hr), "Failed to draw, hr %#lx.\n", hr);
             hr = IDirect3DDevice9_EndScene(device);
-            ok(SUCCEEDED(hr), "Failed to end scene, hr %#x.\n", hr);
+            ok(SUCCEEDED(hr), "Failed to end scene, hr %#lx.\n", hr);
         }
 
         color = getPixelColor(device, 320, 240);
         ok(color_match(color, tests[i].color1, 2) || color_match(color, tests[i].color2, 2),
             "Got unexpected color 0x%08x, expected 0x%08x or 0x%08x, case %u.\n", color, tests[i].color1, tests[i].color2, i);
         hr = IDirect3DDevice9_Present(device, NULL, NULL, NULL, NULL);
-        ok(SUCCEEDED(hr), "Failed to present, hr %#x.\n", hr);
+        ok(SUCCEEDED(hr), "Failed to present, hr %#lx.\n", hr);
     }
 
     IDirect3DVertexShader9_Release(vertex_shader[1]);
@@ -19820,7 +19812,7 @@ static void test_table_shader_fog(void)
     IDirect3DSurface9_Release(ds);
 done:
     refcount = IDirect3DDevice9_Release(device);
-    ok(!refcount, "Device has %u references left.\n", refcount);
+    ok(!refcount, "Device has %lu references left.\n", refcount);
     IDirect3D9_Release(d3d);
     DestroyWindow(window);
 }
